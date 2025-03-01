@@ -70,6 +70,18 @@ def init_db():
     )
     ''')
     
+    # Create elo_history table to track elo changes
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS elo_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        old_elo REAL,
+        new_elo REAL NOT NULL,
+        change_reason TEXT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    
     # Create save table
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS save (
