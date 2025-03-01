@@ -38,6 +38,49 @@ def create_user(user: User) -> int:
     conn.close()
     return user_id
 
+def update_user(user: User) -> None:
+    """Update an existing user's information."""
+    if user.id is None:
+        raise ValueError("User ID cannot be None for update operation")
+        
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET display_name = ?, first_name = ?, last_name = ? WHERE id = ?",
+        (user.display_name, user.first_name, user.last_name, user.id)
+    )
+    conn.commit()
+    conn.close()
+    
+def delete_user(user_id: int) -> None:
+    """Delete a user and all related data (elo, availability)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Check if user is involved in any matches
+    cursor.execute("""
+        SELECT COUNT(*) as match_count FROM matches 
+        WHERE side_1_user_1_id = ? OR side_1_user_2_id = ? OR 
+              side_2_user_1_id = ? OR side_2_user_2_id = ?
+    """, (user_id, user_id, user_id, user_id))
+    
+    result = cursor.fetchone()
+    if result and result['match_count'] > 0:
+        # Update matches to replace this user with NULL
+        cursor.execute("UPDATE matches SET side_1_user_1_id = NULL WHERE side_1_user_1_id = ?", (user_id,))
+        cursor.execute("UPDATE matches SET side_1_user_2_id = NULL WHERE side_1_user_2_id = ?", (user_id,))
+        cursor.execute("UPDATE matches SET side_2_user_1_id = NULL WHERE side_2_user_1_id = ?", (user_id,))
+        cursor.execute("UPDATE matches SET side_2_user_2_id = NULL WHERE side_2_user_2_id = ?", (user_id,))
+    
+    # Delete from all related tables
+    cursor.execute("DELETE FROM availables WHERE user_id = ?", (user_id,))
+    cursor.execute("DELETE FROM elos WHERE user_id = ?", (user_id,))
+    cursor.execute("DELETE FROM save WHERE user_id = ?", (user_id,))
+    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    
+    conn.commit()
+    conn.close()
+
 # Available player queries
 def get_all_availables() -> List[Dict[str, Any]]:
     """Get all available players with their details."""
@@ -240,16 +283,19 @@ def get_all_elos() -> List[Dict[str, Any]]:
     conn.close()
     return elos
 
-def update_elo(user_id: int, new_elo: float) -> None:
+def update_elo(user_id: int, new_elo: float, change_reason: Optional[str] = None) -> None:
     """Update a player's Elo rating or create it if it doesn't exist."""
     conn = get_connection()
     cursor = conn.cursor()
     
     # Check if Elo exists for this user
-    cursor.execute("SELECT id FROM elos WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT id, elo FROM elos WHERE user_id = ?", (user_id,))
     elo_record = cursor.fetchone()
     
     if elo_record:
+        # Get the old ELO for history tracking
+        old_elo = elo_record['elo']
+        
         # Update existing Elo
         cursor.execute(
             "UPDATE elos SET elo = ? WHERE user_id = ?",
@@ -261,6 +307,13 @@ def update_elo(user_id: int, new_elo: float) -> None:
             "INSERT INTO elos (user_id, elo) VALUES (?, ?)",
             (user_id, new_elo)
         )
+        old_elo = None
+    
+    # Record this change in the history
+    cursor.execute(
+        "INSERT INTO elo_history (user_id, old_elo, new_elo, change_reason) VALUES (?, ?, ?, ?)",
+        (user_id, old_elo, new_elo, change_reason)
+    )
     
     conn.commit()
     conn.close()
@@ -331,3 +384,21 @@ def add_players_to_available(player_ids: List[int]) -> None:
     
     conn.commit()
     conn.close()
+    
+
+def get_player_elo_history(user_id: int) -> List[Dict[str, Any]]:
+    """Get the ELO rating history for a player."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT elo_history.id, elo_history.user_id, elo_history.old_elo, 
+               elo_history.new_elo, elo_history.change_reason, elo_history.timestamp,
+               users.display_name
+        FROM elo_history
+        JOIN users ON elo_history.user_id = users.id
+        WHERE elo_history.user_id = ?
+        ORDER BY elo_history.timestamp DESC
+    """, (user_id,))
+    history = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return history
