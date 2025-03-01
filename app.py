@@ -15,6 +15,7 @@ from db.models import User, Elo
 from pages.available import render_available_players
 from pages.matches import render_matches
 from pages.stats import render_stats
+from pages.players import render_players
 
 # Set page configuration
 st.set_page_config(
@@ -44,7 +45,71 @@ st.markdown("""
     /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    
+    /* Mobile-friendly styles */
+    @media screen and (max-width: 640px) {
+        .main .block-container {
+            padding: 1rem 0.5rem;
+        }
+        
+        /* Make columns stack on mobile */
+        .row-widget.stHorizontal {
+            flex-direction: column;
+        }
+        
+        /* Larger touch targets for buttons */
+        button {
+            min-height: 44px !important;
+            margin: 5px 0 !important;
+        }
+        
+        /* Improve spacing for touch interfaces */
+        .stRadio > div, .stCheckbox > div {
+            margin-bottom: 12px;
+        }
+        
+        /* Bottom navigation for mobile */
+        .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            padding: 10px 5px;
+            display: none; /* Will be shown via JavaScript */
+            z-index: 1000;
+        }
+        
+        /* Better player cards */
+        .player-card {
+            padding: 12px 8px !important;
+            border-radius: 10px !important;
+            margin: 8px 0 !important;
+            transition: all 0.2s;
+        }
+        
+        /* Larger form elements */
+        .stNumberInput, .stTextInput, .stSelectbox {
+            min-height: 44px;
+        }
+    }
 </style>
+
+<script>
+// JavaScript to detect mobile and show alternative navigation
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.innerWidth <= 640) {
+        // Show mobile navigation
+        var mobileNav = document.querySelector('.mobile-nav');
+        if (mobileNav) mobileNav.style.display = 'flex';
+        
+        // Potentially collapse sidebar
+        var sidebarToggle = document.querySelector('button[data-testid="baseButton-header"]');
+        if (sidebarToggle) sidebarToggle.click();
+    }
+});
+</script>
 """, unsafe_allow_html=True)
 
 # Sidebar for navigation
@@ -57,17 +122,22 @@ with st.sidebar:
     if st.button("Available Players", use_container_width=True, 
                 type="primary" if st.session_state.page == 'available' else "secondary"):
         st.session_state.page = 'available'
-#        st.experimental_rerun()
+        st.rerun()
         
     if st.button("Matches", use_container_width=True,
                 type="primary" if st.session_state.page == 'matches' else "secondary"):
         st.session_state.page = 'matches'
-        #st.experimental_rerun()
+        st.rerun()
         
     if st.button("Player Stats", use_container_width=True,
                 type="primary" if st.session_state.page == 'stats' else "secondary"):
         st.session_state.page = 'stats'
-        #st.experimental_rerun()
+        st.rerun()
+        
+    if st.button("Player Management", use_container_width=True,
+                type="primary" if st.session_state.page == 'players' else "secondary"):
+        st.session_state.page = 'players'
+        st.rerun()
     
     # Admin section
     st.sidebar.markdown("---")
@@ -135,3 +205,6 @@ elif st.session_state.page == 'matches':
     render_matches()
 elif st.session_state.page == 'stats':
     render_stats()
+elif st.session_state.page == 'players':
+    render_players()
+
