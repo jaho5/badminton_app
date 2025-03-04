@@ -21,7 +21,7 @@ def render_available_players():
     
     with col_load:
         if st.button("Load Saved Availability", use_container_width=True, 
-                    type="primary", help="Load the previously saved player availability"):
+                    help="Load the previously saved player availability"):
             queries.load_available_state()
             st.success("Available players loaded successfully!")
             st.rerun()

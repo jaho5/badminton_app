@@ -19,7 +19,7 @@ def render_matches():
         st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
         
         # Step 1: Match Type with larger clickable buttons instead of radio
-        st.subheader("Step 1: Select Match Type")
+        st.subheader("Match Type")
         col1, col2 = st.columns(2)
         
         # Session state for storing match creation choices
@@ -39,7 +39,7 @@ def render_matches():
                 st.rerun()
                 
         # Step 2: Team Selection Method with more visual buttons
-        st.subheader("Step 2: Team Selection Method")
+        st.subheader("Team Selection Method")
         
         if 'match_method' not in st.session_state:
             st.session_state.match_method = "Balanced by ELO"
@@ -66,13 +66,13 @@ def render_matches():
                 st.rerun()
         
         # Step 3: Create the Match
-        st.subheader("Step 3: Create Match")
+        st.subheader("Create Match")
         match_type = st.session_state.match_type
         match_method = st.session_state.match_method
         
         # Summary of selection
-        st.markdown(f"**Match Type:** {match_type}")
-        st.markdown(f"**Team Selection:** {match_method}")
+        #st.markdown(f"**Match Type:** {match_type}")
+        #st.markdown(f"**Team Selection:** {match_method}")
         
         if st.button("Create Match", use_container_width=True, type="primary"):
             available_players = queries.get_available_players()
@@ -348,7 +348,7 @@ def render_matches():
                             # Add them back to available pool
                             queries.add_players_to_available(match_players)
                             st.success("Players returned to available pool!")
-                            st.rerun()
+                            #st.rerun()
             
             # Display completed matches
             if completed_matches:
@@ -451,4 +451,4 @@ def render_matches():
                             # Add them back to available pool
                             queries.add_players_to_available(match_players)
                             st.success("Players returned to available pool!")
-                            st.rerun()
+                            #st.rerun()
